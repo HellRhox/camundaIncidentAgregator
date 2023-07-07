@@ -1,0 +1,11 @@
+LOG_LEVEL: "debug"
+LOG_PATH: "./Logs/"
+CAMUNDAS:
+  #First Camunda
+  - URL: "https://catfact.ninja/fact"
+    User: "testUser"
+    pw: "password"
+  #Second Camunda
+  - URL: "test.432"
+    User: "anotherTestUser"
+    pw: "drowssap"

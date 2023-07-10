@@ -1,5 +1,5 @@
 /go.sum
-/Logs/*
+/Logs/
 /shelf/
 /workspace.xml
 # Editor-based HTTP Client requests

@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	camunda "camundaIncidentAggregator/pkg/utils"
 	"fmt"
 	"github.com/spf13/viper"
 )
@@ -8,19 +9,9 @@ import (
 const CONFIG_PATH = "./resources/config/"
 
 type Config struct {
-	Camundas []Camunda `mapstructue:"CAMUNDAS"`
-	LogLevel string    `mapstructure:"LOG_LEVEL"`
-	LogPath  string    `mapstructure:"LOG_PATH"`
-}
-
-type Camunda struct {
-	URL  string
-	User string
-	pw   string
-}
-
-func (camunda Camunda) String() string {
-	return "{ URL:" + camunda.URL + " User:" + camunda.User + " pw" + camunda.pw + " }"
+	Camundas []camunda.Camunda `mapstructue:"CAMUNDAS"`
+	LogLevel string            `mapstructure:"LOG_LEVEL"`
+	LogPath  string            `mapstructure:"LOG_PATH"`
 }
 
 func (config Config) String() string {

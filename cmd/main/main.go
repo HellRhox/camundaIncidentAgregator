@@ -16,7 +16,6 @@ import (
 
 const (
 	APPNAME = "CamundaIncidentAggregator"
-	url     = "https://catfact.ninja/fact"
 )
 
 var (
@@ -24,13 +23,18 @@ var (
 )
 
 type model struct {
-	status  int
-	text    string
-	err     error
-	spinner spinner.Model
+	status         []int
+	text           []string
+	err            []error
+	totalRequests  int
+	currentRequest int
+	output         string
+	spinner        spinner.Model
 }
 
 type statusMsg Response
+
+type endMsg string
 
 type errMsg struct{ error }
 
@@ -52,6 +56,7 @@ func main() {
 	}
 	log.SetOutput(logFile)
 	m := model{}
+	m.totalRequests = len(config.Camundas)
 	log.SetLevel(log.ParseLevel(config.LogLevel))
 	log.Debug(config)
 	m.resetSpinner("69")
@@ -62,7 +67,7 @@ func main() {
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(checkServer, m.spinner.Tick)
+	return tea.Batch(m.checkServer)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -77,13 +82,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case statusMsg:
-		m.status = msg.StatusMsg
-		m.text = msg.objectBody.Fact
+		m.currentRequest += 1
+		m.status = append(m.status, msg.StatusMsg)
+		m.text = append(m.text, msg.objectBody.Fact)
+		m.spinner.Update(msg)
+		return m, tea.Batch(m.checkServer, m.spinner.Tick)
+
+	case endMsg:
 		m.resetSpinner("70")
-		return m, tea.Quit
+		return m, nil
 
 	case errMsg:
-		m.err = msg
+		m.err = append(m.err, msg)
 		return m, nil
 
 	case spinner.TickMsg:
@@ -98,21 +108,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	s := fmt.Sprintf("Checking %s %s%s", url, m.spinner.View(), " ")
-	if m.err != nil {
-		s += fmt.Sprintf("something went wrong: %s", m.err)
-	} else if m.status != 0 {
-		s += fmt.Sprintf("%d %s \n%s", m.status, http.StatusText(m.status), m.text)
+	for index := 0; index < m.currentRequest; index++ {
+		m.output += fmt.Sprintf("Checking %s %s", config.Camundas[index].URL, m.spinner.View())
+		if m.status != nil || m.text != nil || m.err != nil {
+			if m.err != nil && m.err[index] != nil {
+				m.output += fmt.Sprintf("something went wrong: %s", m.err[index])
+			} else if m.status[index] != 0 {
+				m.output += fmt.Sprintf("%d %s \n%s \n", m.status[index], http.StatusText(m.status[index]), m.text[index])
+			}
+		}
 	}
-	return s + "\n"
+	return m.output + "\n"
 }
 
-func checkServer() tea.Msg {
+func (m model) checkServer() tea.Msg {
 	c := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 	log.Debug("doing api call")
-	res, err := c.Get(config.Camundas[0].URL)
+	if m.currentRequest == m.totalRequests {
+		return endMsg("")
+	}
+	res, err := c.Get(config.Camundas[m.currentRequest].URL)
 	if err != nil {
 		log.Error(err.Error())
 		return errMsg{err}
@@ -126,8 +143,8 @@ func checkServer() tea.Msg {
 	response.rawBody = string(body)
 	response.StatusMsg = res.StatusCode
 	response.objectBody = catfacts
-
 	return statusMsg(response)
+
 }
 
 func (m *model) resetSpinner(color string) {

@@ -4,8 +4,8 @@ CAMUNDAS:
   #First Camunda
   - URL: "https://catfact.ninja/fact"
     User: "testUser"
-    pw: "password"
+    Password: "password"
   #Second Camunda
-  - URL: "test.432"
+  - URL: "https://catfact.ninja/fact"
     User: "anotherTestUser"
-    pw: "drowssap"
+    Password: "drowssap"

@@ -19,7 +19,9 @@ const (
 )
 
 var (
-	config configuration.Config
+	config    configuration.Config
+	helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render
+	choices   = []string{"Day", "Week", "Month"}
 )
 
 type model struct {
@@ -30,7 +32,17 @@ type model struct {
 	currentRequest int
 	output         string
 	spinner        spinner.Model
+	state          int
+	cursor         int
+	days           int
+	months         int
 }
+
+const (
+	START int = 0
+	REST      = 1
+	END       = 2
+)
 
 type statusMsg Response
 
@@ -67,7 +79,8 @@ func main() {
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(m.checkServer)
+	m.state = 0
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -77,6 +90,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c", "esc":
 			m.resetSpinner("71")
 			return m, tea.Quit
+
+		case "enter":
+			if m.cursor == 0 {
+				m.days = 1
+			} else if m.cursor == 1 {
+				m.days = 7
+			} else if m.cursor == 2 {
+				m.months = 1
+			}
+			m.state = 1
+			return m, m.checkServer
+
+		case "down", "j":
+			m.cursor++
+			if m.cursor >= len(choices) {
+				m.cursor = 0
+			}
+
+		case "up", "k":
+			m.cursor--
+			if m.cursor < 0 {
+				m.cursor = len(choices) - 1
+			}
+
 		default:
 			return m, nil
 		}
@@ -89,12 +126,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(m.checkServer, m.spinner.Tick)
 
 	case endMsg:
+		m.state++
 		m.resetSpinner("70")
-		return m, nil
+		if m.state == END {
+			return m, nil
+		} else if m.state == REST {
+			return m, nil
+		}
+		return m, tea.Quit
 
 	case errMsg:
 		m.err = append(m.err, msg)
-		return m, nil
+		return m, tea.Quit
 
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -108,17 +151,44 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	for index := 0; index < m.currentRequest; index++ {
-		m.output += fmt.Sprintf("Checking %s %s", config.Camundas[index].URL, m.spinner.View())
-		if m.status != nil || m.text != nil || m.err != nil {
-			if m.err != nil && m.err[index] != nil {
-				m.output += fmt.Sprintf("something went wrong: %s", m.err[index])
-			} else if m.status[index] != 0 {
-				m.output += fmt.Sprintf("%d %s \n%s \n", m.status[index], http.StatusText(m.status[index]), m.text[index])
+	helpString := ""
+	if m.state == START {
+		s := strings.Builder{}
+		s.WriteString("What timeframe do u want to query?\n\n")
+
+		for i := 0; i < len(choices); i++ {
+			if m.cursor == i {
+				s.WriteString("(•) ")
+			} else {
+				s.WriteString("( ) ")
+			}
+			s.WriteString(choices[i])
+			s.WriteString("\n")
+		}
+		m.output += s.String()
+		helpString += " ↑/k: Up ↓/j:down ⎆:select "
+	}
+	if m.state == REST {
+		if m.currentRequest < 1 {
+			for _, element := range config.Camundas {
+				m.output += fmt.Sprintf("Checking %s %s", element.URL, m.spinner.View())
+				m.output += "\n"
+			}
+		} else {
+			for index := 0; index < m.currentRequest; index++ {
+				m.output += fmt.Sprintf("Checking %s %s", config.Camundas[index].URL, m.spinner.View())
+				if m.status != nil || m.text != nil || m.err != nil {
+					if m.err != nil && m.err[index] != nil {
+						m.output += fmt.Sprintf("something went wrong: %s", m.err[index])
+					} else if m.status[index] != 0 {
+						m.output += fmt.Sprintf("%d %s \n%s \n", m.status[index], http.StatusText(m.status[index]), m.text[index])
+					}
+				}
 			}
 		}
 	}
-	return m.output + "\n"
+	m.output = m.output + "\n" + helpStyle(helpString+"q: Quit ")
+	return m.output
 }
 
 func (m model) checkServer() tea.Msg {
@@ -144,10 +214,9 @@ func (m model) checkServer() tea.Msg {
 	response.StatusMsg = res.StatusCode
 	response.objectBody = catfacts
 	return statusMsg(response)
-
 }
 
-func (m *model) resetSpinner(color string) {
+func (m model) resetSpinner(color string) {
 	m.spinner = spinner.New()
 	m.spinner.Style = lipgloss.NewStyle().Foreground(lipgloss.Color(color))
 	m.spinner.Spinner = spinner.Points

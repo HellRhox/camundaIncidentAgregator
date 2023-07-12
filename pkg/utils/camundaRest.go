@@ -25,7 +25,7 @@ func (camundaRest CamundaRest) CreatClient(url string, user string, password str
 			Timeout: 10 * time.Second,
 		},
 		baseUrl:         url,
-		apiUrlExtension: "/engineRest",
+		apiUrlExtension: "/engine-rest",
 		username:        user,
 		password:        password,
 		basicAuthString: camundaRest.basicAuth(user, password),
@@ -53,6 +53,7 @@ func (camundaRest CamundaRest) GetListOfIncidents(startDate string, enddate stri
 	q := request.URL.Query()
 	q.Add("incidentTimestampBefore", enddate)
 	q.Add("incidentTimestampAfter", startDate)
+	request.URL.RawQuery = q.Encode()
 	response, err := camundaRest.apiClient.Do(request)
 	if err != nil {
 		return err, ListResponse{}
@@ -77,10 +78,12 @@ func (camundaRest CamundaRest) GetListOfIncidentsCount(startDate string, enddate
 	q := request.URL.Query()
 	q.Add("incidentTimestampBefore", enddate)
 	q.Add("incidentTimestampAfter", startDate)
+	request.URL.RawQuery = q.Encode()
 	response, err := camundaRest.apiClient.Do(request)
 	if err != nil {
 		return err, ListCountResponse{}
 	}
+	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {

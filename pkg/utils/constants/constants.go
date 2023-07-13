@@ -46,19 +46,19 @@ type keymap struct {
 var Keymap = keymap{
 	Enter: key.NewBinding(
 		key.WithKeys("enter"),
-		key.WithHelp("enter", "select"),
+		key.WithHelp("↵", "select"),
 	),
 	Up: key.NewBinding(
 		key.WithKeys("up", "j"),
-		key.WithHelp("up/j", "rename"),
+		key.WithHelp("⇪/j", "rename"),
 	),
 	Down: key.NewBinding(
 		key.WithKeys("down", "k"),
-		key.WithHelp("down/k", "delete"),
+		key.WithHelp("⇩/k", "delete"),
 	),
 	Back: key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "back"),
+		key.WithKeys("esc", "backspace"),
+		key.WithHelp("esc/⌫", "back"),
 	),
 	Quit: key.NewBinding(
 		key.WithKeys("ctrl+c", "q"),

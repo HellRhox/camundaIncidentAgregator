@@ -2,6 +2,8 @@ package main
 
 import (
 	configuration "camundaIncidentAggregator/pkg/config"
+	"camundaIncidentAggregator/pkg/tui"
+	"camundaIncidentAggregator/pkg/utils/constants"
 	"encoding/json"
 	"fmt"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -18,12 +20,6 @@ const (
 	APPNAME = "CamundaIncidentAggregator"
 )
 
-var (
-	config    configuration.Config
-	helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render
-	choices   = []string{"Day", "Week", "Month"}
-)
-
 type model struct {
 	status         []int
 	text           []string
@@ -33,9 +29,6 @@ type model struct {
 	output         string
 	spinner        spinner.Model
 	state          int
-	cursor         int
-	days           int
-	months         int
 }
 
 const (
@@ -48,13 +41,10 @@ type statusMsg Response
 
 type endMsg string
 
-type errMsg struct{ error }
-
-func (e errMsg) Error() string { return e.error.Error() }
-
 func main() {
 	var configurationError error
-	config, configurationError = configuration.LoadConfig()
+	config, configurationError := configuration.LoadConfig()
+	constants.Config = &config
 	if configurationError != nil {
 		log.With(configurationError).Fatal("Error loading configuration file")
 	}
@@ -67,15 +57,9 @@ func main() {
 		log.With(fileError).Error("Error writing to log file. (program will work but not as intended)")
 	}
 	log.SetOutput(logFile)
-	m := model{}
-	m.totalRequests = len(config.Camundas)
 	log.SetLevel(log.ParseLevel(config.LogLevel))
 	log.Debug(config)
-	m.resetSpinner("69")
-	p := tea.NewProgram(m)
-	if _, err := p.Run(); err != nil {
-		log.Fatal(err.Error())
-	}
+	tui.StartTea()
 }
 
 func (m model) Init() tea.Cmd {
@@ -90,29 +74,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c", "esc":
 			m.resetSpinner("71")
 			return m, tea.Quit
-
-		case "enter":
-			if m.cursor == 0 {
-				m.days = 1
-			} else if m.cursor == 1 {
-				m.days = 7
-			} else if m.cursor == 2 {
-				m.months = 1
-			}
-			m.state = 1
-			return m, m.checkServer
-
-		case "down", "j":
-			m.cursor++
-			if m.cursor >= len(choices) {
-				m.cursor = 0
-			}
-
-		case "up", "k":
-			m.cursor--
-			if m.cursor < 0 {
-				m.cursor = len(choices) - 1
-			}
 
 		default:
 			return m, nil
@@ -135,8 +96,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Quit
 
-	case errMsg:
-		m.err = append(m.err, msg)
+	case constants.ErrMsg:
+		m.err = append(m.err, msg.Error)
 		return m, tea.Quit
 
 	case spinner.TickMsg:
@@ -148,35 +109,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.spinner.Update(msg)
 		return m, nil
 	}
+
+	return m, nil
 }
 
 func (m model) View() string {
 	helpString := ""
-	if m.state == START {
-		s := strings.Builder{}
-		s.WriteString("What timeframe do u want to query?\n\n")
-
-		for i := 0; i < len(choices); i++ {
-			if m.cursor == i {
-				s.WriteString("(•) ")
-			} else {
-				s.WriteString("( ) ")
-			}
-			s.WriteString(choices[i])
-			s.WriteString("\n")
-		}
-		m.output += s.String()
-		helpString += " ↑/k: Up ↓/j:down ⎆:select "
-	}
 	if m.state == REST {
 		if m.currentRequest < 1 {
-			for _, element := range config.Camundas {
+			for _, element := range constants.Config.Camundas {
 				m.output += fmt.Sprintf("Checking %s %s", element.URL, m.spinner.View())
 				m.output += "\n"
 			}
 		} else {
 			for index := 0; index < m.currentRequest; index++ {
-				m.output += fmt.Sprintf("Checking %s %s", config.Camundas[index].URL, m.spinner.View())
+				m.output += fmt.Sprintf("Checking %s %s", constants.Config.Camundas[index].URL, m.spinner.View())
 				if m.status != nil || m.text != nil || m.err != nil {
 					if m.err != nil && m.err[index] != nil {
 						m.output += fmt.Sprintf("something went wrong: %s", m.err[index])
@@ -187,7 +134,7 @@ func (m model) View() string {
 			}
 		}
 	}
-	m.output = m.output + "\n" + helpStyle(helpString+"q: Quit ")
+	m.output = m.output + "\n" + constants.HelpStyle(helpString+"q: Quit ")
 	return m.output
 }
 
@@ -199,10 +146,10 @@ func (m model) checkServer() tea.Msg {
 	if m.currentRequest == m.totalRequests {
 		return endMsg("")
 	}
-	res, err := c.Get(config.Camundas[m.currentRequest].URL)
+	res, err := c.Get(constants.Config.Camundas[m.currentRequest].URL)
 	if err != nil {
 		log.Error(err.Error())
-		return errMsg{err}
+		return constants.ErrMsg{err}
 	}
 	defer res.Body.Close()
 	log.Debug("reading body")

@@ -16,6 +16,15 @@ var (
 	Config *configuration.Config
 )
 
+type Mode int
+
+// constants for tracking the mode of the programm
+const (
+	TimeInput Mode = iota
+	RestCalls
+	Results
+)
+
 var DocStyle = lipgloss.NewStyle().Margin(0, 2)
 
 // HelpStyle styling for help context menu

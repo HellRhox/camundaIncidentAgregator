@@ -16,6 +16,10 @@ var (
 	Config *configuration.Config
 )
 
+type ErrMsg struct {
+	Error error
+}
+
 type Mode int
 
 // constants for tracking the mode of the programm

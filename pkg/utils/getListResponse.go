@@ -1,6 +1,7 @@
 package utils
 
 type ListResponesEntrie struct {
+	StatusCode          int
 	Id                  string `json:"id"`
 	ProcessDefinitionId string `json:"processDefinitionId"`
 	ProcessInstanceId   string `json:"processInstanceId"`
@@ -30,5 +31,6 @@ func (listResponse ListResponse) isEmpty() bool {
 }
 
 type ListCountResponse struct {
-	Count int `json:"count"`
+	StatusCode int
+	Count      int `json:"count"`
 }

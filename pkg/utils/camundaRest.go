@@ -84,12 +84,39 @@ func (camundaRest CamundaRest) GetListOfIncidentsCount(startDate string, enddate
 		return err, ListCountResponse{}
 	}
 	defer response.Body.Close()
-
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err, ListCountResponse{}
 	}
 	var listCountResponse ListCountResponse
 	json.Unmarshal(body, &listCountResponse)
+	listCountResponse.StatusCode = response.StatusCode
+	return nil, listCountResponse
+}
+
+func (camundaRest CamundaRest) GetListOfHistoricIncidentsCount(startDate string, enddate string) (error, ListCountResponse) {
+	endpoint := "history/incident/count"
+	request, err := http.NewRequest("GET", camundaRest.baseUrl+camundaRest.apiUrlExtension+endpoint, nil)
+	if err != nil {
+		return err, ListCountResponse{}
+	}
+	request.Header.Add("Authorization", "Basic "+camundaRest.basicAuthString)
+	q := request.URL.Query()
+	q.Add("incidentTimestampBefore", enddate)
+	q.Add("incidentTimestampAfter", startDate)
+	q.Add("resolved", "true")
+	request.URL.RawQuery = q.Encode()
+	response, err := camundaRest.apiClient.Do(request)
+	if err != nil {
+		return err, ListCountResponse{}
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err, ListCountResponse{}
+	}
+	var listCountResponse ListCountResponse
+	json.Unmarshal(body, &listCountResponse)
+	listCountResponse.StatusCode = response.StatusCode
 	return nil, listCountResponse
 }

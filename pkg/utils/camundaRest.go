@@ -22,7 +22,7 @@ func (camundaRest CamundaRest) CreatClient(url string, user string, password str
 	return CamundaRest{
 		apiClient: http.Client{
 			Jar:     &cookiejar.Jar{},
-			Timeout: 10 * time.Second,
+			Timeout: 60 * time.Second,
 		},
 		baseUrl:         url,
 		apiUrlExtension: "/engine-rest",
@@ -95,7 +95,7 @@ func (camundaRest CamundaRest) GetListOfIncidentsCount(startDate string, enddate
 }
 
 func (camundaRest CamundaRest) GetListOfHistoricIncidentsCount(startDate string, enddate string) (error, ListCountResponse) {
-	endpoint := "history/incident/count"
+	endpoint := "/history/incident/count"
 	request, err := http.NewRequest("GET", camundaRest.baseUrl+camundaRest.apiUrlExtension+endpoint, nil)
 	if err != nil {
 		return err, ListCountResponse{}

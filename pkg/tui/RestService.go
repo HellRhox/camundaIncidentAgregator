@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/log"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -20,10 +21,11 @@ type RestModel struct {
 	spinners           spinner.Model
 	day                int
 	month              int
-	responseSuccesfull bool
+	responseSuccessful bool
 	callstate          []int
 	incidentCount      []int
 	autoRetires        int
+	callStarted        bool
 }
 
 type responseMsg struct {
@@ -52,7 +54,7 @@ func (m RestModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m RestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *RestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -81,11 +83,15 @@ func (m RestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		newListModel, cmd := m.list.Update(msg)
 		m.list = newListModel
 		cmds = append(cmds, cmd)
-		if !m.responseSuccesfull {
+		if !m.responseSuccessful && !m.callStarted {
 			cmds = append(cmds, m.getCounts)
+			m.callStarted = true
 		}
 	case responseMsg:
-		m.responseSuccesfull = msg.success
+		m.responseSuccessful = msg.success
+		if !m.responseSuccessful {
+			m.callStarted = false
+		}
 		return m, nil
 	}
 	newListModel, cmd := m.list.Update(msg)
@@ -109,11 +115,11 @@ func (i listItem) Title() string       { return i.title }
 func (i listItem) Description() string { return i.description }
 func (i listItem) FilterValue() string { return i.title }
 
-func (m RestModel) getItems() []list.Item {
+func (m *RestModel) getItems() []list.Item {
 	items := make([]list.Item, len(constants.Config.Camundas))
 	for i, item := range constants.Config.Camundas {
 		var description string
-		if !m.responseSuccesfull {
+		if !m.responseSuccessful {
 			description = m.spinners.View()
 		} else if m.callstate[i] == 200 {
 			description = "Incidents Total:" + strconv.Itoa(m.incidentCount[i])
@@ -132,7 +138,7 @@ func (m RestModel) resetSpinner(color string) spinner.Model {
 	return m.spinners
 }
 
-func (m RestModel) getCounts() tea.Msg {
+func (m *RestModel) getCounts() tea.Msg {
 	/* for showing purpose only
 	for i := range constants.Config.Camundas {
 
@@ -142,17 +148,19 @@ func (m RestModel) getCounts() tea.Msg {
 	time.Sleep(20)
 	return responseMsg{success: rand.Intn(2) == 1}
 	*/
+	log.Debug("METHOD FOR REST CALLS STARTED")
 	var restClient camunda.CamundaRest
-	startDay := time.Now().AddDate(0, -m.month, -m.day).Format("2006-01-02T15:04:05.000-0700")
-	endDay := time.Now().Format("2006-01-02T15:04:05.000-0700")
+	startDay := strings.Replace(time.Now().AddDate(0, -m.month, -m.day).Format("2006-01-02T15:04:05.000-0700"), "+", "-", 1)
+	endDay := strings.Replace(time.Now().Format("2006-01-02T15:04:05.000-0700"), "+", "-", 1)
 	success := false
 	for i, entry := range constants.Config.Camundas {
-		restClient.CreatClient(entry.URL, entry.User, entry.Password)
+		restClient = restClient.CreatClient(entry.URL, entry.User, entry.Password)
 		err, currentIncidentResponse := restClient.GetListOfIncidentsCount(startDay, endDay)
 		historicErr, historyIncidentsResponse := restClient.GetListOfHistoricIncidentsCount(startDay, endDay)
 		if err != nil {
 			log.With(err).Error("ERROR RETRIEVING CURRENT INCIDENT COUNT")
 			if m.autoRetires >= 3 {
+				m.autoRetires++
 				log.Fatal("TO MANY AUTO-RETRIES RETRIEVING ACTIVE INCIDENTS")
 			}
 			return responseMsg{success: false}
@@ -163,7 +171,7 @@ func (m RestModel) getCounts() tea.Msg {
 			m.callstate[i] = currentIncidentResponse.StatusCode
 			m.incidentCount[i] = currentIncidentResponse.Count + historyIncidentsResponse.Count
 		}
-
+		log.Debug("REST-CALLS SUCCESSFUL ")
 	}
 
 	return responseMsg{success: success}

@@ -24,6 +24,7 @@ type RestModel struct {
 	responseSuccessful bool
 	callstate          []int
 	incidentCount      []int
+	resolvedCount      []int
 	autoRetires        int
 	callStarted        bool
 }
@@ -33,7 +34,7 @@ type responseMsg struct {
 }
 
 func InitRest(day int, month int) RestModel {
-	m := RestModel{mode: constants.RestCalls, day: day, month: month, callstate: make([]int, len(constants.Config.Camundas)), incidentCount: make([]int, len(constants.Config.Camundas))}
+	m := RestModel{mode: constants.RestCalls, day: day, month: month, callstate: make([]int, len(constants.Config.Camundas)), incidentCount: make([]int, len(constants.Config.Camundas)), resolvedCount: make([]int, len(constants.Config.Camundas))}
 	m.spinners = m.resetSpinner("69")
 	m.list = list.New(m.getItems(), list.NewDefaultDelegate(), 8, 8)
 	m.list.Title = "Camundas"
@@ -122,7 +123,7 @@ func (m *RestModel) getItems() []list.Item {
 		if !m.responseSuccessful {
 			description = m.spinners.View()
 		} else if m.callstate[i] == 200 {
-			description = "Incidents Total:" + strconv.Itoa(m.incidentCount[i])
+			description = "Incidents Totel:" + strconv.Itoa(m.incidentCount[i]+m.resolvedCount[i]) + " Open:" + strconv.Itoa(m.incidentCount[i]) + " Resolved:" + strconv.Itoa(m.resolvedCount[i])
 		} else if m.callstate[i] != 200 {
 			description = "HTTP ERROR:" + strconv.Itoa(m.callstate[i])
 		}
@@ -169,7 +170,8 @@ func (m *RestModel) getCounts() tea.Msg {
 		} else {
 			success = true
 			m.callstate[i] = currentIncidentResponse.StatusCode
-			m.incidentCount[i] = currentIncidentResponse.Count + historyIncidentsResponse.Count
+			m.incidentCount[i] = currentIncidentResponse.Count
+			m.resolvedCount[i] = historyIncidentsResponse.Count
 		}
 		log.Debug("REST-CALLS SUCCESSFUL ")
 	}

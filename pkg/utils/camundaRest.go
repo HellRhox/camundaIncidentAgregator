@@ -19,10 +19,11 @@ type CamundaRest struct {
 }
 
 func (camundaRest CamundaRest) CreatClient(url string, user string, password string) CamundaRest {
+	jar, _ := cookiejar.New(nil)
 	return CamundaRest{
 		apiClient: http.Client{
-			Jar:     &cookiejar.Jar{},
-			Timeout: 60 * time.Second,
+			Jar:     jar,
+			Timeout: 120 * time.Second,
 		},
 		baseUrl:         url,
 		apiUrlExtension: "/engine-rest",

@@ -9,7 +9,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -118,6 +117,7 @@ func (i listItem) FilterValue() string { return i.title }
 
 func (m *RestModel) getItems() []list.Item {
 	items := make([]list.Item, len(constants.Config.Camundas))
+	var shownName string
 	for i, item := range constants.Config.Camundas {
 		var description string
 		if !m.responseSuccessful {
@@ -127,7 +127,12 @@ func (m *RestModel) getItems() []list.Item {
 		} else if m.callstate[i] != 200 {
 			description = "HTTP ERROR:" + strconv.Itoa(m.callstate[i])
 		}
-		items[i] = list.Item(listItem{title: item.URL, description: description})
+		if len(item.Alias) == 0 {
+			shownName = item.URL
+		} else {
+			shownName = item.Alias
+		}
+		items[i] = list.Item(listItem{title: shownName, description: description})
 	}
 	return items
 }
@@ -167,18 +172,18 @@ func (m *RestModel) getCounts() tea.Msg {
 			return responseMsg{success: false}
 		} else if historicErr != nil {
 			log.With(historicErr).Error("ERROR RETRIEVING HISTORIC INCIDENT COUNT")
-		} else {
-			success = true
-			m.callstate[i] = currentIncidentResponse.StatusCode
-			m.incidentCount[i] = currentIncidentResponse.Count
-			m.resolvedCount[i] = historyIncidentsResponse.Count
 		}
-		log.Debug("REST-CALLS SUCCESSFUL ")
+
+		success = true
+		m.callstate[i] = currentIncidentResponse.StatusCode
+		m.incidentCount[i] = currentIncidentResponse.Count
+		m.resolvedCount[i] = historyIncidentsResponse.Count
 	}
 
 	return responseMsg{success: success}
 }
 
+/**
 func randomCallstat() int {
 	callstateBool := rand.Intn(2) == 1
 	if callstateBool {
@@ -187,3 +192,4 @@ func randomCallstat() int {
 		return 404
 	}
 }
+*/

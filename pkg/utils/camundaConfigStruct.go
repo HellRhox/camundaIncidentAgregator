@@ -2,6 +2,7 @@ package utils
 
 type Camunda struct {
 	URL      string
+	Alias    string //Optional
 	User     string
 	Password string
 }

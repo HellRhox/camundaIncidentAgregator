@@ -20,11 +20,11 @@ type ListResponesEntrie struct {
 }
 
 type ListResponse struct {
-	entities []ListResponesEntrie
+	Entities []ListResponesEntrie
 }
 
 func (listResponse ListResponse) isEmpty() bool {
-	if listResponse.entities == nil {
+	if listResponse.Entities == nil {
 		return true
 	}
 	return false

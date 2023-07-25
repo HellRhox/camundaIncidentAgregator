@@ -3,6 +3,8 @@ package tui
 import (
 	camunda "camundaIncidentAggregator/pkg/utils"
 	"camundaIncidentAggregator/pkg/utils/constants"
+	"camundaIncidentAggregator/pkg/utils/timeFormat"
+	"camundaIncidentAggregator/pkg/utils/web"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -10,8 +12,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"strconv"
-	"strings"
-	"time"
 )
 
 type RestModel struct {
@@ -40,11 +40,9 @@ func InitRest(day int, month int) RestModel {
 	m.Update(m.list.StartSpinner())
 	m.list.AdditionalShortHelpKeys = func() []key.Binding {
 		return []key.Binding{
-			constants.Keymap.Up,
-			constants.Keymap.Down,
 			constants.Keymap.Enter,
+			constants.Keymap.OpenAsLink,
 			constants.Keymap.Back,
-			constants.Keymap.Quit,
 		}
 	}
 	return m
@@ -74,6 +72,12 @@ func (m *RestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, constants.Keymap.Back):
 			timeModel, _ := initTimeFrame()
 			return timeModel.Update(constants.WindowSize)
+		case key.Matches(msg, constants.Keymap.Enter):
+			detailedViewModel := initDetailView(m.day, m.month, m.list.Index())
+			return detailedViewModel.Update(constants.WindowSize)
+		case key.Matches(msg, constants.Keymap.OpenAsLink):
+			web.OpenBrowser(constants.Config.Camundas[m.list.Index()].URL)
+			return m, nil
 		}
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -156,9 +160,8 @@ func (m *RestModel) getCounts() tea.Msg {
 	*/
 	log.Debug("METHOD FOR REST CALLS STARTED")
 	var restClient camunda.CamundaRest
-	startDay := strings.Replace(time.Now().AddDate(0, -m.month, -m.day).Format("2006-01-02T15:04:05.000-0700"), "+", "-", 1)
-	endDay := strings.Replace(time.Now().Format("2006-01-02T15:04:05.000-0700"), "+", "-", 1)
 	success := false
+	startDay, endDay := timeFormat.GetTimeFormatForRest(m.month, m.day)
 	for i, entry := range constants.Config.Camundas {
 		restClient = restClient.CreatClient(entry.URL, entry.User, entry.Password)
 		err, currentIncidentResponse := restClient.GetListOfIncidentsCount(startDay, endDay)
@@ -166,9 +169,9 @@ func (m *RestModel) getCounts() tea.Msg {
 		if err != nil {
 			log.With(err).Error("ERROR RETRIEVING CURRENT INCIDENT COUNT")
 			if m.autoRetires >= 3 {
-				m.autoRetires++
 				log.Fatal("TO MANY AUTO-RETRIES RETRIEVING ACTIVE INCIDENTS")
 			}
+			m.autoRetires++
 			return responseMsg{success: false}
 		} else if historicErr != nil {
 			log.With(historicErr).Error("ERROR RETRIEVING HISTORIC INCIDENT COUNT")

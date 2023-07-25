@@ -23,7 +23,7 @@ func (camundaRest CamundaRest) CreatClient(url string, user string, password str
 	return CamundaRest{
 		apiClient: http.Client{
 			Jar:     jar,
-			Timeout: 120 * time.Second,
+			Timeout: 60 * time.Second,
 		},
 		baseUrl:         url,
 		apiUrlExtension: "/engine-rest",
@@ -120,4 +120,30 @@ func (camundaRest CamundaRest) GetListOfHistoricIncidentsCount(startDate string,
 	json.Unmarshal(body, &listCountResponse)
 	listCountResponse.StatusCode = response.StatusCode
 	return nil, listCountResponse
+}
+
+func (camundaRest CamundaRest) GetListOfHistoricIncidents(startDate string, enddate string) (error, ListResponse) {
+	endpoint := "/history/incident"
+	request, err := http.NewRequest("GET", camundaRest.baseUrl+camundaRest.apiUrlExtension+endpoint, nil)
+	if err != nil {
+		return err, ListResponse{}
+	}
+	request.Header.Add("Authorization", "Basic "+camundaRest.basicAuthString)
+	q := request.URL.Query()
+	q.Add("incidentTimestampBefore", enddate)
+	q.Add("incidentTimestampAfter", startDate)
+	q.Add("resolved", "true")
+	request.URL.RawQuery = q.Encode()
+	response, err := camundaRest.apiClient.Do(request)
+	if err != nil {
+		return err, ListResponse{}
+	}
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err, ListResponse{}
+	}
+	var listResponse ListResponse
+	json.Unmarshal(body, &listResponse)
+	return nil, listResponse
 }

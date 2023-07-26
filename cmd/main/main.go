@@ -1,13 +1,16 @@
 package main
 
+import configuration "camundaIncidentAggregator/pkg/config"
+
 import (
-	configuration "camundaIncidentAggregator/pkg/config"
 	"camundaIncidentAggregator/pkg/tui"
 	"camundaIncidentAggregator/pkg/utils/constants"
 	"github.com/charmbracelet/log"
 	"os"
 	"time"
 )
+
+const APPNAME = "CamundaIncidentAggregator"
 
 func main() {
 	var configurationError error
@@ -20,7 +23,7 @@ func main() {
 	if dirError != nil {
 		log.With(dirError).Error("Error creating logging directory")
 	}
-	logFile, fileError := os.OpenFile(config.LogPath+constants.APPNAME+(time.Now()).Format("02-01-2006")+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
+	logFile, fileError := os.OpenFile(config.LogPath+APPNAME+(time.Now()).Format("02-01-2006")+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
 	if fileError != nil {
 		log.With(fileError).Error("Error writing to log file. (program will work but not as intended)")
 	}

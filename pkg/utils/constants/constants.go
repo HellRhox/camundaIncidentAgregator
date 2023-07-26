@@ -30,11 +30,6 @@ const (
 	Results
 )
 
-const (
-	APPNAME     = "CamundaIncidentAggregator"
-	CONFIG_PATH = "./resources/config/"
-)
-
 // AppPath for opening application in browser
 var AppPath = "/camunda/app/cockpit/"
 

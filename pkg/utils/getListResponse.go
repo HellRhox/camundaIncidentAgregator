@@ -1,6 +1,6 @@
 package utils
 
-type ListResponesEntrie struct {
+type ListResponseEntre struct {
 	StatusCode          int
 	Id                  string `json:"id"`
 	ProcessDefinitionId string `json:"processDefinitionId"`
@@ -19,12 +19,10 @@ type ListResponesEntrie struct {
 	Annotation          string `json:"annotation"`
 }
 
-type ListResponse struct {
-	Entities []ListResponesEntrie
-}
+type ListResponse []ListResponseEntre
 
 func (listResponse ListResponse) isEmpty() bool {
-	if listResponse.Entities == nil {
+	if listResponse == nil {
 		return true
 	}
 	return false

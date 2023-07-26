@@ -2,11 +2,10 @@ package configuration
 
 import (
 	camunda "camundaIncidentAggregator/pkg/utils"
+	"camundaIncidentAggregator/pkg/utils/constants"
 	"fmt"
 	"github.com/spf13/viper"
 )
-
-const CONFIG_PATH = "./resources/config/"
 
 type Config struct {
 	Camundas []camunda.Camunda `mapstructue:"CAMUNDAS"`
@@ -24,7 +23,7 @@ func (config Config) String() string {
 }
 
 func LoadConfig() (config Config, err error) {
-	viper.AddConfigPath(CONFIG_PATH)
+	viper.AddConfigPath(constants.CONFIG_PATH)
 	viper.SetConfigName("environment")
 	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()

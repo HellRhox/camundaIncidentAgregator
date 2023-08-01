@@ -65,7 +65,10 @@ func (camundaRest CamundaRest) GetListOfIncidents(startDate string, enddate stri
 		return err, ListResponse{}
 	}
 	var listResponse ListResponse
-	json.Unmarshal(body, &listResponse)
+	err = json.Unmarshal(body, &listResponse)
+	if err != nil {
+		return err, ListResponse{}
+	}
 	return nil, listResponse
 }
 

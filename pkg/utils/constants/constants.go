@@ -37,12 +37,14 @@ var AppPath = "/camunda/app/cockpit/"
 var DocStyle = lipgloss.NewStyle().Margin(0, 2)
 
 // HelpStyle styling for help context menu
-var HelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render
+var HelpStyle = lipgloss.NewStyle().Align(lipgloss.Bottom, lipgloss.Left).Foreground(lipgloss.Color("241")).Render
 
 type keymap struct {
 	Enter      key.Binding
 	Up         key.Binding
 	Down       key.Binding
+	Left       key.Binding
+	Right      key.Binding
 	Back       key.Binding
 	Quit       key.Binding
 	OpenAsLink key.Binding
@@ -61,6 +63,14 @@ var Keymap = keymap{
 	Down: key.NewBinding(
 		key.WithKeys("down", "k"),
 		key.WithHelp("⇩/k", "down"),
+	),
+	Left: key.NewBinding(
+		key.WithKeys("left"),
+		key.WithHelp("⇦", "left"),
+	),
+	Right: key.NewBinding(
+		key.WithKeys("right"),
+		key.WithHelp("⇨", "right"),
 	),
 	Back: key.NewBinding(
 		key.WithKeys("esc", "backspace"),

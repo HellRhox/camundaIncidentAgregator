@@ -98,13 +98,13 @@ func (m TimeModel) View() string {
 
 func (m TimeModel) helpView() string {
 	var keyBindings string
-	for _, keyBinding := range getKeybindings() {
+	for _, keyBinding := range getKeybindingsTimeFrame() {
 		keyBindings += keyBinding.Help().Desc + ":" + keyBinding.Help().Key + " "
 	}
 	return constants.HelpStyle(keyBindings)
 }
 
-func getKeybindings() []key.Binding {
+func getKeybindingsTimeFrame() []key.Binding {
 	return []key.Binding{
 		constants.Keymap.Up,
 		constants.Keymap.Down,

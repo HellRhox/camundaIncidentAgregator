@@ -45,6 +45,7 @@ func initDetailView(day int, month int, index int) detailedSingleView {
 	p.PerPage = 1
 	p.ActiveDot = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "235", Dark: "252"}).Render("•")
 	p.InactiveDot = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "250", Dark: "238"}).Render("•")
+	p.KeyMap = paginator.KeyMap{}
 	p.SetTotalPages(totalPage)
 	m.paging = p
 	m.list = list.New(nil, list.NewDefaultDelegate(), 8, 8)
@@ -87,10 +88,20 @@ func (m *detailedSingleView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, constants.Keymap.Back):
 			restService := InitRest(m.day, m.month)
 			return restService.Update(constants.WindowSize)
-		case key.Matches(msg, m.paging.KeyMap.PrevPage):
+		case key.Matches(msg, constants.Keymap.Left):
+			if m.paging.Page != 0 {
+				m.paging.PrevPage()
+			} else {
+				m.paging.Page = m.paging.TotalPages - 1
+			}
 			cmds = append(cmds, m.updateList()...)
 			break
-		case key.Matches(msg, m.paging.KeyMap.NextPage):
+		case key.Matches(msg, constants.Keymap.Right):
+			if m.paging.OnLastPage() {
+				m.paging.Page = 0
+			} else {
+				m.paging.NextPage()
+			}
 			cmds = append(cmds, m.updateList()...)
 			break
 		}
@@ -99,7 +110,7 @@ func (m *detailedSingleView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.responseSuccessful {
 			m.callStarted = false
 		}
-		m.paging.TotalPages = getTotalPagesFromMaximum(len(m.currentDetails), len(m.historicDetails))
+		m.paging.TotalPages = len(m.keys)
 		m.updateList()
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -148,6 +159,14 @@ func (m *detailedSingleView) getItems(index int) ([]list.Item, []tea.Cmd) {
 	return items, cmds
 }
 
+func (m *detailedSingleView) getDetails() tea.Msg {
+	m.callStarted = true
+	m.currentDetails = m.aggregateData(m.getDetailsCurrent())
+	m.historicDetails = m.aggregateData(m.getDetailsHistoric())
+	m.getKeys()
+	return responseDetailMsg{success: true}
+}
+
 func (m *detailedSingleView) getDetailsCurrent() camunda.ListResponse {
 	var restClient camunda.CamundaRest
 	restClient = restClient.CreatClient(constants.Config.Camundas[m.indexOfElement].URL, constants.Config.Camundas[m.indexOfElement].User, constants.Config.Camundas[m.indexOfElement].Password)
@@ -159,14 +178,6 @@ func (m *detailedSingleView) getDetailsCurrent() camunda.ListResponse {
 	return currentDetails
 }
 
-func (m *detailedSingleView) getDetails() tea.Msg {
-	m.callStarted = true
-	m.currentDetails = aggregateData(m.getDetailsCurrent())
-	m.historicDetails = aggregateData(m.getDetailsHistoric())
-	m.getKeys()
-	return responseDetailMsg{success: true}
-}
-
 func (m *detailedSingleView) getDetailsHistoric() camunda.ListResponse {
 	var restClient camunda.CamundaRest
 	restClient = restClient.CreatClient(constants.Config.Camundas[m.indexOfElement].URL, constants.Config.Camundas[m.indexOfElement].User, constants.Config.Camundas[m.indexOfElement].Password)
@@ -176,6 +187,17 @@ func (m *detailedSingleView) getDetailsHistoric() camunda.ListResponse {
 		log.With(err).Fatal("COULD NOT GET HISTORIC DETAILS FOR INCIDENTS")
 	}
 	return historicDetails
+}
+
+func (m *detailedSingleView) getDefenition(definitonId string) camunda.Definition {
+	var restClient camunda.CamundaRest
+	restClient = restClient.CreatClient(constants.Config.Camundas[m.indexOfElement].URL, constants.Config.Camundas[m.indexOfElement].User, constants.Config.Camundas[m.indexOfElement].Password)
+	log.Debug("Preparing rest call for get definition")
+	err, definition := restClient.GetProcessDefinition(definitonId)
+	if err != nil {
+		log.With(err).Fatal("COULD NOT GET definition")
+	}
+	return definition
 }
 
 func (m *detailedSingleView) getKeys() {
@@ -207,14 +229,18 @@ func (m *detailedSingleView) updateList() []tea.Cmd {
 	return cmds
 }
 
-func aggregateData(entities camunda.ListResponse) map[string][]camunda.ListResponseEntre {
+func (m *detailedSingleView) aggregateData(entities camunda.ListResponse) map[string][]camunda.ListResponseEntre {
 	returnMap := make(map[string][]camunda.ListResponseEntre)
 	log.Debug("Generating sorted map with list")
 	for _, entry := range entities {
-		if _, ok := returnMap[entry.ProcessDefinitionId]; ok {
-			returnMap[entry.ProcessDefinitionId] = append(returnMap[entry.ProcessDefinitionId], entry)
+		if entry.ProcessName == "" {
+			definition := m.getDefenition(entry.ProcessDefinitionId)
+			entry.ProcessName = definition.Name
+		}
+		if _, ok := returnMap[entry.ProcessName]; ok {
+			returnMap[entry.ProcessName] = append(returnMap[entry.ProcessName], entry)
 		} else {
-			returnMap[entry.ProcessDefinitionId] = append(make([]camunda.ListResponseEntre, 1), entry)
+			returnMap[entry.ProcessName] = append(make([]camunda.ListResponseEntre, 1), entry)
 		}
 	}
 	return returnMap
@@ -239,13 +265,6 @@ func getKeybindingsDetail() []key.Binding {
 		constants.Keymap.Enter,
 		constants.Keymap.Back,
 		constants.Keymap.Quit,
-	}
-}
-func getTotalPagesFromMaximum(firstVal int, secondVal int) int {
-	if firstVal >= secondVal {
-		return firstVal
-	} else {
-		return secondVal
 	}
 }
 

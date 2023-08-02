@@ -150,3 +150,23 @@ func (camundaRest CamundaRest) GetListOfHistoricIncidents(startDate string, endd
 	json.Unmarshal(body, &listResponse)
 	return nil, listResponse
 }
+
+func (camundaRest CamundaRest) GetProcessDefinition(definitionId string) (error, Definition) {
+	endpoint := "/process-definition/" + definitionId
+	request, err := http.NewRequest("GET", camundaRest.baseUrl+camundaRest.apiUrlExtension+endpoint, nil)
+	if err != nil {
+		return err, Definition{}
+	}
+	request.Header.Add("Authorization", "Basic "+camundaRest.basicAuthString)
+	response, err := camundaRest.apiClient.Do(request)
+	if err != nil {
+		return err, Definition{}
+	}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err, Definition{}
+	}
+	var definition Definition
+	json.Unmarshal(body, &definition)
+	return nil, definition
+}

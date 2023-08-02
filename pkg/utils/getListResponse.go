@@ -4,6 +4,7 @@ type ListResponseEntre struct {
 	StatusCode          int
 	Id                  string `json:"id"`
 	ProcessDefinitionId string `json:"processDefinitionId"`
+	ProcessName         string
 	ProcessInstanceId   string `json:"processInstanceId"`
 	ExecutionId         string `json:"executionId"`
 	IncidentTimestamp   string `json:"incidentTimestamp"`
@@ -31,4 +32,21 @@ func (listResponse ListResponse) isEmpty() bool {
 type ListCountResponse struct {
 	StatusCode int
 	Count      int `json:"count"`
+}
+
+type Definition struct {
+	Id                  string      `json:"id"`
+	Key                 string      `json:"key"`
+	Category            string      `json:"category"`
+	Description         interface{} `json:"description"`
+	Name                string      `json:"name"`
+	Version             int         `json:"version"`
+	Resource            string      `json:"resource"`
+	DeploymentId        string      `json:"deploymentId"`
+	Diagram             interface{} `json:"diagram"`
+	Suspended           bool        `json:"suspended"`
+	TenantId            interface{} `json:"tenantId"`
+	VersionTag          interface{} `json:"versionTag"`
+	HistoryTimeToLive   int         `json:"historyTimeToLive"`
+	StartableInTasklist bool        `json:"startableInTasklist"`
 }

@@ -7,7 +7,9 @@ import (
 )
 
 const (
-	CONFIG_PATH = "./resources/config/"
+	MainConfigPath      = "./resources/config/"
+	SecondaryConfigPath = "../resources/config/"
+	TertiaryConfigPath  = "."
 )
 
 type Config struct {
@@ -26,7 +28,9 @@ func (config Config) String() string {
 }
 
 func LoadConfig() (config Config, err error) {
-	viper.AddConfigPath(CONFIG_PATH)
+	viper.AddConfigPath(MainConfigPath)
+	viper.AddConfigPath(SecondaryConfigPath)
+	viper.AddConfigPath(TertiaryConfigPath)
 	viper.SetConfigName("environment")
 	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()

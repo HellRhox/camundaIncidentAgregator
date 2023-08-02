@@ -219,7 +219,8 @@ func (m *detailedSingleView) updateList() []tea.Cmd {
 	var cmd tea.Cmd
 	if m.responseSuccessful {
 		index := m.paging.Page
-		m.list.Title = m.keys[index]
+		definition := m.getDefenition(m.keys[index])
+		m.list.Title = definition.Name + "|| Version:" + strconv.Itoa(definition.Version)
 		items, returnedCmds := m.getItems(index)
 		cmds = append(cmds, returnedCmds...)
 		m.list.SetItems(items)
@@ -233,14 +234,10 @@ func (m *detailedSingleView) aggregateData(entities camunda.ListResponse) map[st
 	returnMap := make(map[string][]camunda.ListResponseEntre)
 	log.Debug("Generating sorted map with list")
 	for _, entry := range entities {
-		if entry.ProcessName == "" {
-			definition := m.getDefenition(entry.ProcessDefinitionId)
-			entry.ProcessName = definition.Name
-		}
-		if _, ok := returnMap[entry.ProcessName]; ok {
-			returnMap[entry.ProcessName] = append(returnMap[entry.ProcessName], entry)
+		if _, ok := returnMap[entry.ProcessDefinitionId]; ok {
+			returnMap[entry.ProcessDefinitionId] = append(returnMap[entry.ProcessDefinitionId], entry)
 		} else {
-			returnMap[entry.ProcessName] = append(make([]camunda.ListResponseEntre, 1), entry)
+			returnMap[entry.ProcessDefinitionId] = append(make([]camunda.ListResponseEntre, 1), entry)
 		}
 	}
 	return returnMap

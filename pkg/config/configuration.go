@@ -27,10 +27,14 @@ func (config Config) String() string {
 	return output
 }
 
-func LoadConfig() (config Config, err error) {
-	viper.AddConfigPath(MainConfigPath)
-	viper.AddConfigPath(SecondaryConfigPath)
-	viper.AddConfigPath(TertiaryConfigPath)
+func LoadConfig(customDir string) (config Config, err error) {
+	if customDir != "" {
+		viper.AddConfigPath(customDir)
+	} else {
+		viper.AddConfigPath(MainConfigPath)
+		viper.AddConfigPath(SecondaryConfigPath)
+		viper.AddConfigPath(TertiaryConfigPath)
+	}
 	viper.SetConfigName("environment")
 	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()

@@ -1,6 +1,9 @@
 package main
 
-import configuration "camundaIncidentAggregator/pkg/config"
+import (
+	configuration "camundaIncidentAggregator/pkg/config"
+	"flag"
+)
 
 import (
 	"camundaIncidentAggregator/pkg/tui"
@@ -13,8 +16,12 @@ import (
 const APPNAME = "CamundaIncidentAggregator"
 
 func main() {
+	var customConfigDir string
+
+	flag.StringVar(&customConfigDir, "dir", "", "Configuration Directory")
+	flag.Parse()
 	var configurationError error
-	config, configurationError := configuration.LoadConfig()
+	config, configurationError := configuration.LoadConfig(customConfigDir)
 	constants.Config = &config
 	if configurationError != nil {
 		log.With(configurationError).Fatal("Error loading configuration file")
@@ -30,5 +37,9 @@ func main() {
 	log.SetOutput(logFile)
 	log.SetLevel(log.ParseLevel(config.LogLevel))
 	log.Debug(config)
-	tui.StartTea()
+	log.Debug("Custom config directory " + customConfigDir + " given")
+	err := tui.StartTea()
+	if err != nil {
+		return
+	}
 }

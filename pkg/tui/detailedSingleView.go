@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"sort"
 	"strconv"
 )
 
@@ -210,6 +211,7 @@ func (m *detailedSingleView) getKeys() {
 		} else {
 			m.keys = append(m.keys, mapKey)
 		}
+		sort.Strings(m.keys)
 	}
 
 }
@@ -219,8 +221,7 @@ func (m *detailedSingleView) updateList() []tea.Cmd {
 	var cmd tea.Cmd
 	if m.responseSuccessful {
 		index := m.paging.Page
-		definition := m.getDefinition(m.keys[index])
-		m.list.Title = definition.Name + "|| Version:" + strconv.Itoa(definition.Version)
+		m.list.Title = m.keys[index]
 		items, returnedCmds := m.getItems(index)
 		cmds = append(cmds, returnedCmds...)
 		m.list.SetItems(items)
@@ -232,14 +233,20 @@ func (m *detailedSingleView) updateList() []tea.Cmd {
 
 func (m *detailedSingleView) aggregateData(entities camunda.ListResponse) map[string][]camunda.ListResponseEntre {
 	returnMap := make(map[string][]camunda.ListResponseEntre)
+	aggregateMap := make(map[string][]camunda.ListResponseEntre)
 	log.Debug("Generating sorted map with list")
 	for _, entry := range entities {
 		if _, ok := returnMap[entry.ProcessDefinitionId]; ok {
-			returnMap[entry.ProcessDefinitionId] = append(returnMap[entry.ProcessDefinitionId], entry)
+			aggregateMap[entry.ProcessDefinitionId] = append(aggregateMap[entry.ProcessDefinitionId], entry)
 		} else {
-			returnMap[entry.ProcessDefinitionId] = append(make([]camunda.ListResponseEntre, 1), entry)
+			aggregateMap[entry.ProcessDefinitionId] = append(make([]camunda.ListResponseEntre, 1), entry)
 		}
 	}
+	for keyName, values := range aggregateMap {
+		definitionName := m.getDefinition(keyName).Name
+		returnMap[definitionName] = append(returnMap[definitionName], values...)
+	}
+
 	return returnMap
 }
 

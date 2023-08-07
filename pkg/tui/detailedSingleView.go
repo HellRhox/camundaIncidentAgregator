@@ -189,7 +189,7 @@ func (m *detailedSingleView) getDetailsHistoric() camunda.ListResponse {
 	return historicDetails
 }
 
-func (m *detailedSingleView) getDefenition(definitonId string) camunda.Definition {
+func (m *detailedSingleView) getDefinition(definitonId string) camunda.Definition {
 	var restClient camunda.CamundaRest
 	restClient = restClient.CreatClient(constants.Config.Camundas[m.indexOfElement].URL, constants.Config.Camundas[m.indexOfElement].User, constants.Config.Camundas[m.indexOfElement].Password)
 	log.Debug("Preparing rest call for get definition")
@@ -219,7 +219,7 @@ func (m *detailedSingleView) updateList() []tea.Cmd {
 	var cmd tea.Cmd
 	if m.responseSuccessful {
 		index := m.paging.Page
-		definition := m.getDefenition(m.keys[index])
+		definition := m.getDefinition(m.keys[index])
 		m.list.Title = definition.Name + "|| Version:" + strconv.Itoa(definition.Version)
 		items, returnedCmds := m.getItems(index)
 		cmds = append(cmds, returnedCmds...)
@@ -280,8 +280,12 @@ type detailedViewListItem struct {
 	progress    progress.Model
 }
 
-func (i detailedViewListItem) Title() string { return i.title }
+func (i detailedViewListItem) Title() string {
+	return i.title
+}
 func (i detailedViewListItem) Description() string {
 	return i.progress.ViewAs(i.progress.Percent()) + " " + i.description
 }
-func (i detailedViewListItem) FilterValue() string { return i.title }
+func (i detailedViewListItem) FilterValue() string {
+	return i.title
+}

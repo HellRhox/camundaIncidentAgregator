@@ -25,7 +25,6 @@ type Mode int
 // constants for tracking the mode of the programm
 const (
 	TimeInput Mode = iota
-	SelectSystems
 	RestCalls
 	Results
 )
@@ -48,6 +47,7 @@ type keymap struct {
 	Back       key.Binding
 	Quit       key.Binding
 	OpenAsLink key.Binding
+	Export     key.Binding
 }
 
 // Keymap reusable key mappings shared across models
@@ -83,5 +83,10 @@ var Keymap = keymap{
 	OpenAsLink: key.NewBinding(
 		key.WithKeys("ctrl+o"),
 		key.WithHelp("ctrl+o", "open as link"),
+	),
+
+	Export: key.NewBinding(
+		key.WithKeys("ctrl+e"),
+		key.WithHelp("ctrl+e", "export as .csv-file"),
 	),
 }

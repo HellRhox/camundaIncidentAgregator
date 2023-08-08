@@ -13,9 +13,10 @@ const (
 )
 
 type Config struct {
-	Camundas []camunda.Camunda `mapstructue:"CAMUNDAS"`
-	LogLevel string            `mapstructure:"LOG_LEVEL"`
-	LogPath  string            `mapstructure:"LOG_PATH"`
+	Camundas   []camunda.Camunda `mapstructue:"CAMUNDAS"`
+	LogLevel   string            `mapstructure:"LOG_LEVEL"`
+	LogPath    string            `mapstructure:"LOG_PATH"`
+	ExportPath string            `mapstructure:"EXPORT_PATH"`
 }
 
 func (config Config) String() string {
@@ -24,6 +25,8 @@ func (config Config) String() string {
 		output += "\t\t" + fmt.Sprintf("%d", index) + fmt.Sprintf("%+v", element) + "\n"
 	}
 	output += "\tLogLevel: " + config.LogLevel
+	output += "\tLogPath: " + config.LogPath
+	output += "\tExportPath: " + config.ExportPath
 	return output
 }
 

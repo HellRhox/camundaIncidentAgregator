@@ -38,6 +38,7 @@ func initDetailView(day int, month int, index int) detailedSingleView {
 	var totalPage int
 	m.day = day
 	m.month = month
+	m.mode = constants.Results
 	m.spinner = spinner.New()
 	m.spinner.Spinner = spinner.Hamburger
 	m.spinner.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))

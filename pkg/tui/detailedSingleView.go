@@ -244,8 +244,9 @@ func (m *detailedSingleView) aggregateData(entities camunda.ListResponse) map[st
 		}
 	}
 	for keyName, values := range aggregateMap {
-		definitionName := m.getDefinition(keyName).Name
-		returnMap[definitionName] = append(returnMap[definitionName], values...)
+		definition := m.getDefinition(keyName)
+		outputName := definition.Name + "||Version:" + strconv.Itoa(definition.Version)
+		returnMap[outputName] = append(returnMap[outputName], values...)
 	}
 
 	return returnMap

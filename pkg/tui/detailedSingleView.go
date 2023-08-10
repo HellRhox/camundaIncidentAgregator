@@ -186,7 +186,7 @@ func (m *detailedSingleView) getDetailsHistoric() camunda.ListResponse {
 	log.Debug("Preparing rest call for historic incidents")
 	err, historicDetails := restClient.GetListOfHistoricIncidents(timeFormat.GetTimeFormatForRest(m.month, m.day))
 	if err != nil {
-		log.With(err).Fatal("COULD NOT GET HISTORIC DETAILS FOR INCIDENTS")
+		log.With(err).Error("COULD NOT GET HISTORIC DETAILS FOR INCIDENTS")
 	}
 	return historicDetails
 }

@@ -5,13 +5,16 @@ import (
 	"camundaIncidentAggregator/pkg/utils/constants"
 	"camundaIncidentAggregator/pkg/utils/timeFormat"
 	"camundaIncidentAggregator/pkg/utils/web"
+	"encoding/csv"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"os"
 	"strconv"
+	"time"
 )
 
 type RestModel struct {
@@ -43,12 +46,13 @@ func InitRest(day int, month int) RestModel {
 			constants.Keymap.Enter,
 			constants.Keymap.OpenAsLink,
 			constants.Keymap.Back,
+			constants.Keymap.Export,
 		}
 	}
 	return m
 }
 
-func (m RestModel) Init() tea.Cmd {
+func (m *RestModel) Init() tea.Cmd {
 	return nil
 }
 
@@ -78,6 +82,8 @@ func (m *RestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, constants.Keymap.OpenAsLink):
 			web.OpenBrowser(constants.Config.Camundas[m.list.Index()].URL)
 			return m, nil
+		case key.Matches(msg, constants.Keymap.Export):
+			cmds = append(cmds, m.export)
 		}
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -105,7 +111,7 @@ func (m *RestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m RestModel) View() string {
+func (m *RestModel) View() string {
 
 	return constants.DocStyle.Render(m.list.View() + "\n")
 }
@@ -141,7 +147,7 @@ func (m *RestModel) getItems() []list.Item {
 	return items
 }
 
-func (m RestModel) resetSpinner(color string) spinner.Model {
+func (m *RestModel) resetSpinner(color string) spinner.Model {
 	m.spinners = spinner.New()
 	m.spinners.Style = lipgloss.NewStyle().Foreground(lipgloss.Color(color))
 	m.spinners.Spinner = spinner.Points
@@ -196,3 +202,30 @@ func randomCallstat() int {
 	}
 }
 */
+
+func (m *RestModel) export() tea.Msg {
+	if _, err := os.Stat(constants.Config.ExportPath); os.IsNotExist(err) {
+		err := os.MkdirAll(constants.Config.ExportPath, 0777)
+		if err != nil {
+			log.With(err).Error("FAILED CREATING EXPORT BECAUSE OF FAILING TO CREATE DIRECTORY")
+			return nil
+		}
+	}
+	file, err := os.OpenFile(constants.Config.ExportPath+"Export_"+(time.Now()).Format("02-01-2006")+".csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
+	defer file.Close()
+	if err != nil {
+		log.With(err).Error("COULD NOT OPEN/WRITE FILE")
+		return nil
+	}
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+	writer.Write([]string{"Workflow Name + Version", "Total", "Open", "Resolved", "System"})
+	for index, system := range constants.Config.Camundas {
+		detailedViewModel := initDetailView(m.day, m.month, index)
+		detailedViewModel.getDetails()
+		for _, value := range detailedViewModel.keys {
+			writer.Write([]string{value, strconv.Itoa(len(detailedViewModel.historicDetails[value]) + len(detailedViewModel.currentDetails[value])), strconv.Itoa(len(detailedViewModel.currentDetails[value])), strconv.Itoa(len(detailedViewModel.historicDetails[value])), system.Alias})
+		}
+	}
+	return nil
+}
